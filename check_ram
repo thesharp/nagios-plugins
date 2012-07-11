@@ -1,0 +1,56 @@
+#!/usr/bin/env python
+#
+#    nagios-plugins-ram - A plugin for nagios that will check RAM.
+#    version 2.0 - Jul 11 2012
+#    Copyright (c) 2012  Ilya A. Otyutskiy <sharp@thesharp.ru>
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+
+import sys
+import subprocess
+
+from optparse import OptionParser
+
+parser = OptionParser()
+parser.add_option("-w", "--warning", action="store", dest="w",
+                  type="int", help="Warning treshold")
+parser.add_option("-c", "--critical", action="store", dest="c",
+                  type="int", help="Critical treshold")
+(options, args) = parser.parse_args()
+
+if not options.w or not options.c:
+    print "Specify tresholds. Try --help."
+    sys.exit(3)
+
+ps = subprocess.Popen("free -m", shell=True, stdout=subprocess.PIPE)
+free = ps.communicate()[0]
+
+for i in free.split("\n"):
+    if i.startswith("Mem:"):
+        total = int(i.split()[1])
+        used = int(i.split()[2]) - int(i.split()[6])
+
+used_p = (used * 100) / total
+free_p = 100 - used_p
+
+if free_p <= options.c:
+    print "RAM CRITICAL: %d%% free" % free_p
+    sys.exit(2)
+elif free_p <= options.w:
+    print "RAM WARNING: %d%% free" % free_p
+    sys.exit(1)
+else:
+    print "RAM OK: %d%% free" % free_p
+    sys.exit(0)

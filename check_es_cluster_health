@@ -1,0 +1,55 @@
+#!/usr/bin/env python
+#
+#    check_es_cluster_health - A plugin for nagios that will check
+#    ElasticSearch's cluster health.
+#    version 1.0 - Jul 11 2012
+#    Copyright (c) 2012  Ilya A. Otyutskiy <sharp@thesharp.ru>
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+
+import urllib2
+import json
+import sys
+
+if len(sys.argv) < 2:
+    print "Specify an ElasticSearch URL with a trailing slash as an argument."
+    print "E.g.: http://elastic.domain.tld:9200/"
+    sys.exit(3)
+else:
+    host = sys.argv[1]
+
+url = "%s/_cluster/health" % host
+
+try:
+    page = urllib2.urlopen("%s?pretty=true" % url)
+except urllib2.URLError, e:
+    print "CLUSTER_HEALTH: %s" % e
+    sys.exit(2)
+content = page.read()
+content = json.loads(content)
+status = content["status"]
+
+if status == "green":
+    print "CLUSTER_HEALTH OK: %s" % status
+    sys.exit(0)
+elif status == "yellow":
+    print "CLUSTER_HEALTH WARNING: %s" % status
+    sys.exit(1)
+elif status == "red":
+    print "CLUSTER_HEALTH CRITICAL: %s" % status
+    sys.exit(2)
+else:
+    print "CLUSTER_HEALTH UNKNOWN: %s" % status
+    sys.exit(3)
